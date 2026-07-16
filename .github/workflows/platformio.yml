@@ -1,0 +1,49 @@
+name: PlatformIO CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    paths:
+      - "examples/**"
+      - "src/**"
+      - "platformio.ini"
+      - ".github/workflows/platformio.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        examples:
+          - examples/BatteryVoltage
+          - examples/CameraWebServer
+          - examples/DeepSleep
+          - examples/Factory
+          - examples/HelloWorld
+          - examples/RecordWAV
+          - examples/SimplePlayback
+          - examples/SimplePlaybackWithTouch
+          - examples/SX126x_PingPong
+          - examples/SX126x_Receive_Interrupt
+          - examples/SX126x_Transmit_Interrupt
+          - examples/TouchButton
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Run PlatformIO
+        run: |
+          export PLATFORMIO_SRC_DIR=${{ matrix.examples }}
+          pio run

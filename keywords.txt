@@ -1,0 +1,50 @@
+#######################################
+# Syntax Coloring Map For LilyGo Glass V3 By Lewis He
+# github:https://github.com/Xinyuan-LilyGO/T-Glass-V3
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+LilyGo_Glass	KEYWORD1
+
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+begin	KEYWORD2
+initCamera	KEYWORD2
+initI2S	KEYWORD2
+deinitI2S	KEYWORD2
+getAudioLevels	KEYWORD2
+update	KEYWORD2
+setTouchThreshold	KEYWORD2
+detachTouch	KEYWORD2
+getTouched	KEYWORD2
+isPressed	KEYWORD2
+setBrightness	KEYWORD2
+getBrightness	KEYWORD2
+setRotation	KEYWORD2
+getRotation	KEYWORD2
+flipHorizontal	KEYWORD2
+setAddrWindow	KEYWORD2
+pushColors	KEYWORD2
+width	KEYWORD2
+height	KEYWORD2
+hasTouch	KEYWORD2
+getPoint	KEYWORD2
+getBattVoltage	KEYWORD2
+getBatteryPercent	KEYWORD2
+enableTouchWakeup	KEYWORD2
+sleep	KEYWORD2
+wakeup	KEYWORD2
+needFullRefresh	KEYWORD2
+initMicrophone	KEYWORD2
+readStream	KEYWORD2
+writeStream	KEYWORD2
+tone	KEYWORD2
+isCameraDetected	KEYWORD2
+beginLvglHelper	KEYWORD2
+#######################################
+# Constants (LITERAL1)
+#######################################

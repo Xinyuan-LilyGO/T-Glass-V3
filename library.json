@@ -1,0 +1,67 @@
+{
+  "name": "T-Glass-V3",
+  "version": "1.0.0",
+  "description": "Library for LilyGo T-Glass V3",
+  "keywords": "lilygo,amoled,glass,esp32",
+  "authors": [
+    {
+      "name": "Xinyuan-LilyGO",
+      "url": "https://github.com/Xinyuan-LilyGO"
+    },
+    {
+      "name": "LewisHe",
+      "url": "https://github.com/lewisxhe",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Xinyuan-LilyGO/T-Glass-V3.git"
+  },
+  "homepage": "https://github.com/Xinyuan-LilyGO/T-Glass-V3",
+  "export": {
+    "include": [
+      "LICENSE",
+      "library.json",
+      "library.properties",
+      "README.md",
+      "keywords.txt",
+      "src/*",
+      "examples/*"
+    ]
+  },
+  "dependencies": [
+    {
+      "name": "RadioLib",
+      "version": "7.7.1"
+    },
+    {
+      "name": "lvgl",
+      "version": "8.4.0"
+    },
+    {
+      "name": "XPowersLib",
+      "version": "0.3.2"
+    },
+    {
+      "name": "SensorLib",
+      "version": "0.3.3"
+    },
+    {
+      "name": "ESP8266Audio",
+      "version": "1.9.9"
+    },
+    {
+      "name": "arduino-audio-driver",
+      "version": "https://github.com/pschatzmann/arduino-audio-driver/archive/v0.2.0.zip"
+    }
+  ],
+  "examples": [
+    "examples/*/*.ino"
+  ],
+  "frameworks": [
+    "arduino"
+  ],
+  "platforms": "esp32",
+  "headers": "LilyGo_GlassV3.h"
+}
