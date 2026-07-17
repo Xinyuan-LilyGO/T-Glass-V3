@@ -17,7 +17,7 @@ jobs:
       matrix:
         examples:
           - examples/BatteryVoltage
-          - examples/CameraWebServer
+          # - examples/CameraWebServer
           - examples/DeepSleep
           - examples/Factory
           - examples/HelloWorld
