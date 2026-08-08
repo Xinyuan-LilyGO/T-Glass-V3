@@ -22,6 +22,7 @@
 #include <esp_sntp.h>
 #include <esp_camera.h>
 #include <Preferences.h>
+#include <WiFiMulti.h>
 
 #ifndef RADIO_FREQ
 #ifdef  JAPAN_MIC
@@ -81,7 +82,7 @@ static struct GlassSetting glass_setting = {
     .lora_sf = RADIO_SF,
     .lora_sw = 0x12,
     .lora_preamble_length = 15,
-    .lora_tx_enable = false,
+    .lora_tx_enable = true,
     .touch_enter_sleep = false,
     .touch_threshold = 200,
 };
@@ -126,7 +127,7 @@ static lv_obj_t *voltage_label;
 static lv_obj_t *percent_meter;
 static lv_meter_indicator_t *percent_indic;
 static bool touchDetected;
-
+static WiFiMulti wifiMulti;
 
 #include <vector>
 
@@ -430,23 +431,6 @@ void setup()
         touchDetected = true;
     }, FALLING);
 
-    // Set notification call-back function , After time synchronization is completed, synchronize the synchronized time to the hardware RTC
-    sntp_set_time_sync_notification_cb( timeavailable );
-
-    /**
-    * This will set configured ntp servers and constant TimeZone/daylightOffset
-    * should be OK if your time zone does not need to adjust daylightOffset twice a year,
-    * in such a case time adjustment won't be handled automagicaly.
-    */
-    // configTime(GMT_OFFSET_SEC, DAY_LIGHT_OFFSET_SEC, NTP_SERVER1, NTP_SERVER2);
-
-    /**
-     * A more convenient approach to handle TimeZones with daylightOffset
-     * would be to specify a environmnet variable with TimeZone definition including daylight adjustmnet rules.
-     * A list of rules for your zone could be obtained from https://github.com/esp8266/Arduino/blob/master/cores/esp8266/TZ.h
-     */
-    configTzTime(CFG_TIME_ZONE, NTP_SERVER1, NTP_SERVER2);
-
 
     // Check WiFi credentials
     if (String(WIFI_SSID) == "Your WiFi SSID" || String(WIFI_PASSWORD) == "Your WiFi PASSWORD" ) {
@@ -468,8 +452,12 @@ void setup()
         // Initialize WiFi
         WiFi.mode(WIFI_STA);
         WiFi.onEvent(WiFiEvent);    // Register WiFi event
-        WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-        while (WiFi.status() != WL_CONNECTED) {
+        // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+        wifiMulti.addAP(WIFI_SSID, WIFI_PASSWORD);
+#if  defined(WIFI_SSID2) && defined(WIFI_PASSWORD2)
+        wifiMulti.addAP(WIFI_SSID2, WIFI_PASSWORD2);
+#endif
+        while (wifiMulti.run(1000) != WL_CONNECTED) {
             delay(500);
             Serial.print(".");
         }
@@ -486,6 +474,24 @@ void setup()
         // }
 
     }
+
+    // Set notification call-back function , After time synchronization is completed, synchronize the synchronized time to the hardware RTC
+    sntp_set_time_sync_notification_cb( timeavailable );
+
+    /**
+    * This will set configured ntp servers and constant TimeZone/daylightOffset
+    * should be OK if your time zone does not need to adjust daylightOffset twice a year,
+    * in such a case time adjustment won't be handled automagicaly.
+    */
+    // configTime(GMT_OFFSET_SEC, DAY_LIGHT_OFFSET_SEC, NTP_SERVER1, NTP_SERVER2);
+
+    /**
+     * A more convenient approach to handle TimeZones with daylightOffset
+     * would be to specify a environmnet variable with TimeZone definition including daylight adjustmnet rules.
+     * A list of rules for your zone could be obtained from https://github.com/esp8266/Arduino/blob/master/cores/esp8266/TZ.h
+     */
+    configTzTime(CFG_TIME_ZONE, NTP_SERVER1, NTP_SERVER2);
+
 
     // Initialize factory gui
     lv_gui_init();
@@ -899,9 +905,8 @@ void loop()
 // Callback function (get's called when time adjusts via NTP)
 static void timeavailable(struct timeval * t)
 {
-    Serial.println("Got time adjustment from NTP!");
-    // Synchronize the synchronized time to the hardware RTC
-    // glass.hwClockWrite();
+    Serial.println("Got time adjustment from NTP! Disconnecting WiFi...");
+    WiFi.disconnect();
 }
 
 
@@ -1266,6 +1271,9 @@ static void lv_gui_select_next_item()
     page_id++;
     page_id %= max_page_num;
     lv_obj_set_tile_id(tileview, page_id, 0, LV_ANIM_ON);
+    if (page_id == PAGE_LORA_TX && !glass_setting.lora_tx_enable) {
+        lv_label_set_text_fmt (lora_tx_message_label, "LoRa has been disabled");
+    }
 }
 
 static void lv_gui_init()
