@@ -1,93 +1,78 @@
-# Factory Example
+# Factory Test Example
 
-This example is a factory test/demo firmware for T-Glass V3. It uses an LVGL
-tileview to switch between hardware test pages.
+[Chinese](readme_cn.md)
 
-## T8 Screen Move Page
+`Factory.ino` is the T-Glass V3 factory test firmware. It provides quick checks for the camera, display, touch button, BOOT button, speaker, microphones, time, LoRa, battery, and Wi-Fi. It can also adjust and save the visible UI position.
 
-The T8 page is `PAGE_SCREEN_MOVE`. It is used to adjust the position of the
-whole factory UI tileview on the display.
+## Preparation
 
-### Enter The T8 Page
+1. Connect a LoRa antenna matching the test frequency and connect the test battery.
+2. Connect the board to a computer with a USB data cable. The serial baud rate is `115200`.
+3. Start at least one of these Wi-Fi access points:
 
-Use the touch button to switch pages until the T8 page is shown.
+   | SSID | Password |
+   | --- | --- |
+   | `xinyuandianzi` | `AA15994823428` |
+   | `LilyGo-AABB` | `xinyuandianzi` |
 
-When T8 is first displayed, the title is:
+4. Power on the board. The firmware opens the T0 camera page after Wi-Fi connects. If neither access point is available, startup waits for a connection.
 
-```text
-Screen Move
-```
+## Test Pages
 
-At this time, the page is only selected. Touch input will not change
-`tileview_x` or `tileview_y`.
+Short-touch the touch button to select the next page. A tone plays after every page change.
 
-### Enter Adjustment Mode
+| Page | Display | Test |
+| --- | --- | --- |
+| T0 | Live camera image | Camera and display |
+| T1 | `Mic Level` | Left and right microphones |
+| T2 | Time, weekday, and month | Wi-Fi/NTP time |
+| T3 | `LoRa Tx` | Periodic LoRa transmission |
+| T4 | `LoRa Rx` | Received data, RSSI, and SNR |
+| T5 | `Volts` | Battery voltage and level |
+| T6 | `RSSI` | Wi-Fi connection and signal strength |
+| T7 | Four animated direction icons | Image and animation |
+| T8 | `Screen Move` | Visible UI position adjustment |
 
-On the T8 page, double-click the BOOT button to enter adjustment mode.
+## Controls
 
-After entering adjustment mode, the title changes to:
+- **Touch button**: Selects the next page from T0 through T7. On T8, it returns to T0 when adjustment mode is not active.
+- **BOOT single-click**: In T8 adjustment mode, cycles through `UP -> DOWN -> LEFT -> RIGHT`.
+- **BOOT double-click**: On T8, enters adjustment mode. Double-click again to save the position and return to T0.
+- **BOOT long-press**: Shows `Sleep.`, enters sleep, and wakes from a touch-button press.
 
-```text
-Adjusting
-```
+### T8 Position Adjustment
 
-Only in this mode can the touch button adjust the overall tileview position.
+1. Open T8 and double-click BOOT. The title changes from `Screen Move` to `Adjusting`.
+2. Single-click BOOT to select a direction.
+3. Short-touch the touch button to move 5 units in the selected direction.
+4. Double-click BOOT to save and exit.
+5. Reboot and verify that the saved position is restored.
 
-### Select Direction
+Both X and Y offsets are limited to `-63` through `63`.
 
-In adjustment mode, single-click the BOOT button to switch the move direction.
-The direction text cycles in this order:
+## LoRa Test
 
-```text
-UP -> DOWN -> LEFT -> RIGHT -> UP
-```
+LoRa testing requires a known-good second device with matching parameters. Use the actual frequency, bandwidth, SF, CR, sync word, and preamble shown in the startup serial log.
 
-The default direction is `UP`.
+- T3 periodically transmits `Hello #n`. Confirm reception on the second device.
+- T4 displays the received data, RSSI, and SNR.
+- LoRa parameters are stored in NVS and remain active after reboot.
 
-### Move The Tileview
+## Common Serial Commands
 
-In adjustment mode, press the touch button to move the whole tileview by one
-step. Each step changes the offset by `5`.
-
-Current code behavior:
-
-| Direction | Offset Change |
+| Command | Function |
 | --- | --- |
-| `UP` | `tileview_y -= 5` |
-| `DOWN` | `tileview_y += 5` |
-| `LEFT` | `tileview_x -= 5` |
-| `RIGHT` | `tileview_x += 5` |
+| `next` | Select the next page |
+| `send` | Open LoRa Tx |
+| `recv` | Open LoRa Rx |
+| `wifi` | Scan nearby Wi-Fi networks, then reconnect automatically |
+| `touchRead` | Read the raw touch value |
+| `freq:<MHz>` | Set the LoRa frequency |
+| `bw:<kHz>` | Set the LoRa bandwidth |
+| `sf:<value>` | Set the spreading factor |
+| `cr:<value>` | Set the coding rate |
+| `sw:<decimal>` | Set the sync word; `sw:18` means `0x12` |
+| `tp:<dBm>` | Set the transmit power |
+| `pl:<value>` | Set the preamble length |
 
-After each move, the tileview is re-aligned with:
-
-```cpp
-lv_obj_align(tileview, LV_ALIGN_BOTTOM_MID, tileview_x, tileview_y);
-```
-
-### Offset Limits
-
-The current code limits the offsets to this range:
-
-```text
-tileview_x: -63 ~ 63
-tileview_y: -63 ~ 63
-```
-
-If a move would exceed the range, the value is clamped to the nearest limit.
-
-### Save And Exit
-
-While in adjustment mode, double-click the BOOT button again to:
-
-1. exit adjustment mode;
-2. save `tileview_x` and `tileview_y` to `Preferences`;
-3. switch to the next tileview page.
-
-The saved values use the `glass_config` Preferences namespace:
-
-```text
-tileview_x
-tileview_y
-```
-
-On the next boot, the firmware reads these values and restores the saved layout.
+See [factory_test_guide_cn.md](test/factory_test_guide_cn.md) for the complete factory test procedure and acceptance criteria.

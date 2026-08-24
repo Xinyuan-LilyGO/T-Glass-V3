@@ -137,6 +137,7 @@ static lv_obj_t *percent_meter;
 static lv_meter_indicator_t *percent_indic;
 static bool touchDetected;
 static WiFiMulti wifiMulti;
+static bool wifiMultiConfigured;
 
 #include <vector>
 
@@ -162,12 +163,18 @@ enum TransmissionDirection
 
 TransmissionDirection transmissionDirection = LORA_NONE;
 
-//! You can use EspTouch to configure the network key without changing the WiFi password below
+//! WiFiMulti selects an available network from the configured access points.
 #ifndef WIFI_SSID
-#define WIFI_SSID "Your WiFi SSID"
+#define WIFI_SSID "xinyuandianzi"
 #endif
 #ifndef WIFI_PASSWORD
-#define WIFI_PASSWORD "Your WiFi PASSWORD"
+#define WIFI_PASSWORD "AA15994823428"
+#endif
+#ifndef WIFI_SSID2
+#define WIFI_SSID2 "LilyGo-AABB"
+#endif
+#ifndef WIFI_PASSWORD2
+#define WIFI_PASSWORD2 "xinyuandianzi"
 #endif
 
 #define WIFI_MSG_ID 0x1001
@@ -513,26 +520,30 @@ void setup()
     else
     {
         // For factory WiFi connection testing only
-        Serial.print("Use default WiFi SSID & PASSWORD!!");
-        Serial.print("SSID:");
+        Serial.println("Configured WiFi networks:");
+        Serial.print("SSID1:");
         Serial.println(WIFI_SSID);
-        Serial.print("PASSWORD:");
-        Serial.println(WIFI_PASSWORD);
         // Initialize WiFi
         WiFi.mode(WIFI_STA);
         WiFi.onEvent(WiFiEvent); // Register WiFi event
         // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
         wifiMulti.addAP(WIFI_SSID, WIFI_PASSWORD);
 #if defined(WIFI_SSID2) && defined(WIFI_PASSWORD2)
+        Serial.print("SSID2:");
+        Serial.println(WIFI_SSID2);
         wifiMulti.addAP(WIFI_SSID2, WIFI_PASSWORD2);
 #endif
+        wifiMultiConfigured = true;
         while (wifiMulti.run(1000) != WL_CONNECTED)
         {
             delay(500);
             Serial.print(".");
         }
         Serial.println("");
-        Serial.println("WiFi connected");
+        Serial.print("[WiFi] Connected to: ");
+        Serial.println(WiFi.SSID());
+        Serial.print("[WiFi] IP address: ");
+        Serial.println(WiFi.localIP());
 
         // extern void startCameraServer();
         // startCameraServer();
@@ -894,10 +905,17 @@ void loop()
         {
             lv_gui_move_tileview();
         }
-        else if (current_page != PAGE_SCREEN_MOVE)
+        else
         {
             lv_gui_select_next_item();
         }
+    }
+
+    static uint32_t wifiReconnectInterval = 0;
+    if (wifiMultiConfigured && millis() - wifiReconnectInterval >= 5000)
+    {
+        wifiReconnectInterval = millis();
+        wifiMulti.run(1000);
     }
 
     handleWomCommands();
@@ -1110,8 +1128,7 @@ void loop()
 // Callback function (get's called when time adjusts via NTP)
 static void timeavailable(struct timeval *t)
 {
-    Serial.println("Got time adjustment from NTP! Disconnecting WiFi...");
-    WiFi.disconnect();
+    Serial.println("Got time adjustment from NTP!");
 }
 
 static void update_datetime()
@@ -1625,7 +1642,7 @@ static void lv_gui_init()
     lv_obj_t *t6 = lv_tileview_add_tile(tileview, PAGE_WIFI, 0, LV_DIR_HOR | LV_DIR_BOTTOM);
     lv_obj_t *t7 = lv_tileview_add_tile(tileview, PAGE_IMAGE, 0, LV_DIR_HOR | LV_DIR_BOTTOM);
     lv_obj_t *t8 = lv_tileview_add_tile(tileview, PAGE_SCREEN_MOVE, 0, LV_DIR_HOR | LV_DIR_BOTTOM);
-
+ 
     // Create camera frame
     lv_tileview_add_camera_frame(t0);
 
