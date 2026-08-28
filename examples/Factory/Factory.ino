@@ -23,6 +23,8 @@
 #include <esp_camera.h>
 #include <Preferences.h>
 #include <WiFiMulti.h>
+#include "esp_sleep.h"
+#include "driver/rtc_io.h"
 
 #ifndef RADIO_FREQ
 #ifdef JAPAN_MIC
@@ -137,7 +139,6 @@ static lv_obj_t *percent_meter;
 static lv_meter_indicator_t *percent_indic;
 static bool touchDetected;
 static WiFiMulti wifiMulti;
-static bool wifiMultiConfigured;
 
 #include <vector>
 
@@ -178,6 +179,7 @@ TransmissionDirection transmissionDirection = LORA_NONE;
 #endif
 
 #define WIFI_MSG_ID 0x1001
+#define WIFI_CONNECT_TIMEOUT_MS 15000
 
 // Adjust the time server and corresponding event offset according to your own situation
 #define NTP_SERVER1 "pool.ntp.org"
@@ -260,7 +262,13 @@ void boot_button_event_callback(ButtonState state)
 #if 1
         showMessageToScreen("Sleep.");
         // Set touch button wake-up and set the touch threshold for wake-up
-        glass.enableTouchWakeup(200);
+        // glass.enableTouchWakeup(200); // T-Gless-V3 need to set this
+
+        rtc_gpio_pullup_en(GPIO_NUM_1);  // 启用内部上拉电阻
+        rtc_gpio_pulldown_dis(GPIO_NUM_1); // 禁用内部下拉电阻
+    
+        esp_sleep_enable_ext0_wakeup(GPIO_NUM_1, 1); 
+        
         // Go to sleep
         glass.sleep();
 #else
@@ -533,17 +541,32 @@ void setup()
         Serial.println(WIFI_SSID2);
         wifiMulti.addAP(WIFI_SSID2, WIFI_PASSWORD2);
 #endif
-        wifiMultiConfigured = true;
-        while (wifiMulti.run(1000) != WL_CONNECTED)
+        uint32_t wifiConnectStart = millis();
+        uint8_t wifiStatus = WL_IDLE_STATUS;
+        while (millis() - wifiConnectStart < WIFI_CONNECT_TIMEOUT_MS)
         {
-            delay(500);
+            wifiStatus = wifiMulti.run(1000);
+            if (wifiStatus == WL_CONNECTED)
+            {
+                break;
+            }
             Serial.print(".");
+            delay(100);
         }
-        Serial.println("");
-        Serial.print("[WiFi] Connected to: ");
-        Serial.println(WiFi.SSID());
-        Serial.print("[WiFi] IP address: ");
-        Serial.println(WiFi.localIP());
+
+        if (wifiStatus == WL_CONNECTED)
+        {
+            Serial.println("");
+            Serial.print("[WiFi] Connected to: ");
+            Serial.println(WiFi.SSID());
+            Serial.print("[WiFi] IP address: ");
+            Serial.println(WiFi.localIP());
+        }
+        else
+        {
+            Serial.println("");
+            Serial.println("[WiFi] Connect timeout, continue startup.");
+        }
 
         // extern void startCameraServer();
         // startCameraServer();
@@ -909,13 +932,6 @@ void loop()
         {
             lv_gui_select_next_item();
         }
-    }
-
-    static uint32_t wifiReconnectInterval = 0;
-    if (wifiMultiConfigured && millis() - wifiReconnectInterval >= 5000)
-    {
-        wifiReconnectInterval = millis();
-        wifiMulti.run(1000);
     }
 
     handleWomCommands();
