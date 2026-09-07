@@ -22,7 +22,6 @@
 #include <esp_sntp.h>
 #include <esp_camera.h>
 #include <Preferences.h>
-#include <WiFiMulti.h>
 #include "esp_sleep.h"
 #include "driver/rtc_io.h"
 
@@ -138,7 +137,6 @@ static lv_obj_t *voltage_label;
 static lv_obj_t *percent_meter;
 static lv_meter_indicator_t *percent_indic;
 static bool touchDetected;
-static WiFiMulti wifiMulti;
 
 #include <vector>
 
@@ -164,22 +162,21 @@ enum TransmissionDirection
 
 TransmissionDirection transmissionDirection = LORA_NONE;
 
-//! WiFiMulti selects an available network from the configured access points.
 #ifndef WIFI_SSID
-#define WIFI_SSID "xinyuandianzi"
+#define WIFI_SSID "Your WiFi SSID"
 #endif
 #ifndef WIFI_PASSWORD
-#define WIFI_PASSWORD "AA15994823428"
+#define WIFI_PASSWORD "Your WiFi Password"
 #endif
-#ifndef WIFI_SSID2
-#define WIFI_SSID2 "LilyGo-AABB"
-#endif
-#ifndef WIFI_PASSWORD2
-#define WIFI_PASSWORD2 "xinyuandianzi"
-#endif
+// #ifndef WIFI_SSID2
+// #define WIFI_SSID2 "Your WiFi SSID"
+// #endif
+// #ifndef WIFI_PASSWORD2
+// #define WIFI_PASSWORD2 "Your WiFi Password"
+// #endif
 
 #define WIFI_MSG_ID 0x1001
-#define WIFI_CONNECT_TIMEOUT_MS 15000
+#define WIFI_CONNECT_TIMEOUT_MS 5000
 
 // Adjust the time server and corresponding event offset according to your own situation
 #define NTP_SERVER1 "pool.ntp.org"
@@ -451,7 +448,7 @@ void setup()
     // Turn on debugging message output, Arduino IDE users please put
     // Tools -> USB CDC On Boot -> Enable, otherwise there will be no output
     Serial.begin(115200);
-
+    Serial.printf("Reset reason: %d\n", esp_reset_reason());
     // Get preferences
     bool res = preferences.begin("glass_config", false);
     if (!res)
@@ -532,29 +529,41 @@ void setup()
         Serial.print("SSID1:");
         Serial.println(WIFI_SSID);
         // Initialize WiFi
-        WiFi.mode(WIFI_STA);
         WiFi.onEvent(WiFiEvent); // Register WiFi event
-        // WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-        wifiMulti.addAP(WIFI_SSID, WIFI_PASSWORD);
+        WiFi.mode(WIFI_STA);
+        WiFi.setAutoReconnect(false);
 #if defined(WIFI_SSID2) && defined(WIFI_PASSWORD2)
         Serial.print("SSID2:");
         Serial.println(WIFI_SSID2);
-        wifiMulti.addAP(WIFI_SSID2, WIFI_PASSWORD2);
 #endif
+
         uint32_t wifiConnectStart = millis();
-        uint8_t wifiStatus = WL_IDLE_STATUS;
-        while (millis() - wifiConnectStart < WIFI_CONNECT_TIMEOUT_MS)
+        uint32_t firstAttemptTimeout = WIFI_CONNECT_TIMEOUT_MS;
+#if defined(WIFI_SSID2) && defined(WIFI_PASSWORD2)
+        firstAttemptTimeout /= 2;
+#endif
+
+        WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+        while (!WiFi.isConnected() && millis() - wifiConnectStart < firstAttemptTimeout)
         {
-            wifiStatus = wifiMulti.run(1000);
-            if (wifiStatus == WL_CONNECTED)
-            {
-                break;
-            }
             Serial.print(".");
             delay(100);
         }
 
-        if (wifiStatus == WL_CONNECTED)
+#if defined(WIFI_SSID2) && defined(WIFI_PASSWORD2)
+        if (!WiFi.isConnected() && millis() - wifiConnectStart < WIFI_CONNECT_TIMEOUT_MS)
+        {
+            WiFi.disconnect(false, false);
+            WiFi.begin(WIFI_SSID2, WIFI_PASSWORD2);
+            while (!WiFi.isConnected() && millis() - wifiConnectStart < WIFI_CONNECT_TIMEOUT_MS)
+            {
+                Serial.print(".");
+                delay(100);
+            }
+        }
+#endif
+
+        if (WiFi.isConnected())
         {
             Serial.println("");
             Serial.print("[WiFi] Connected to: ");
@@ -564,6 +573,7 @@ void setup()
         }
         else
         {
+            WiFi.disconnect(true, false);
             Serial.println("");
             Serial.println("[WiFi] Connect timeout, continue startup.");
         }
@@ -1145,6 +1155,7 @@ void loop()
 static void timeavailable(struct timeval *t)
 {
     Serial.println("Got time adjustment from NTP!");
+    WiFi.disconnect();
 }
 
 static void update_datetime()
