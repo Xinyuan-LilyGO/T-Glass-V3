@@ -256,7 +256,7 @@ void boot_button_event_callback(ButtonState state)
         break;
     case BTN_LONG_PRESSED_EVENT:
         Serial.println("long Pressed\n");
-#if 1
+#if 0
         showMessageToScreen("Sleep.");
         // Set touch button wake-up and set the touch threshold for wake-up
         // glass.enableTouchWakeup(200); // T-Gless-V3 need to set this
@@ -1155,7 +1155,7 @@ void loop()
 static void timeavailable(struct timeval *t)
 {
     Serial.println("Got time adjustment from NTP!");
-    WiFi.disconnect();
+    // WiFi.disconnect();
 }
 
 static void update_datetime()
