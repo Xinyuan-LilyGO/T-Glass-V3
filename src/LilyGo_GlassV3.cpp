@@ -23,6 +23,69 @@ AudioBoard audioOutputDev(AudioDriverES8311, PinsAudioBoard);
 AudioBoard audioInputDev(AudioDriverES7210, PinsAudioBoard);
 #endif
 
+namespace {
+
+#ifndef USE_ESP_CODEC_LIB
+samplerate_t codecRateFor(int sampleRate) {
+    switch (sampleRate) {
+    case 8000: return RATE_8K;
+    case 11025: return RATE_11K;
+    case 16000: return RATE_16K;
+    case 22050: return RATE_22K;
+    case 24000: return RATE_24K;
+    case 32000: return RATE_32K;
+    case 44100: return RATE_44K;
+    case 48000: return RATE_48K;
+    case 64000: return RATE_64K;
+    case 88200: return RATE_88K;
+    case 96000: return RATE_96K;
+    case 128000: return RATE_128K;
+    case 176400: return RATE_176K;
+    case 192000: return RATE_192K;
+    default: return RATE_44K;
+    }
+}
+
+int numericRate(samplerate_t rate) {
+    switch (rate) {
+    case RATE_8K: return 8000;
+    case RATE_11K: return 11025;
+    case RATE_16K: return 16000;
+    case RATE_22K: return 22050;
+    case RATE_24K: return 24000;
+    case RATE_32K: return 32000;
+    case RATE_44K: return 44100;
+    case RATE_48K: return 48000;
+    case RATE_64K: return 64000;
+    case RATE_88K: return 88200;
+    case RATE_96K: return 96000;
+    case RATE_128K: return 128000;
+    case RATE_176K: return 176400;
+    case RATE_192K: return 192000;
+    default: return 44100;
+    }
+}
+#endif
+
+class GlassAudioOutputI2S : public AudioOutputI2S {
+public:
+    GlassAudioOutputI2S(LilyGo_Glass *owner, int port, int outputMode)
+        : AudioOutputI2S(port, outputMode, 8, AudioOutputI2S::APLL_DISABLE),
+          owner_(owner) {
+    }
+
+    bool SetRate(int sampleRate) override {
+        const bool i2sConfigured = AudioOutputI2S::SetRate(sampleRate);
+        if (owner_ == nullptr) return i2sConfigured;
+        return i2sConfigured && owner_->setAudioSampleRate(sampleRate);
+    }
+
+private:
+    LilyGo_Glass *owner_;
+};
+
+}  // namespace
+
 static uint32_t _spi_freq = 80000000;
 
 static  camera_config_t _camera_config = {
@@ -45,9 +108,12 @@ static  camera_config_t _camera_config = {
     .xclk_freq_hz = 20000000,
     .ledc_timer     = LEDC_TIMER_0,
     .ledc_channel   = LEDC_CHANNEL_0,
-    .pixel_format   = PIXFORMAT_RGB565, // PIXFORMAT_JPEG,//
-    // .pixel_format   = PIXFORMAT_JPEG,//
-    .frame_size = FRAMESIZE_96X96,//FRAMESIZE_QVGA,
+#if defined(ASTRA_CAMERA_USE_JPEG)
+    .pixel_format   = PIXFORMAT_JPEG,
+#else
+    .pixel_format   = PIXFORMAT_RGB565,
+#endif
+    .frame_size = FRAMESIZE_QVGA,
     .jpeg_quality = 10,
     .fb_count = 1,
     .fb_location = CAMERA_FB_IN_PSRAM,
@@ -269,6 +335,40 @@ bool LilyGo_Glass::initI2S()
     return i2s_set_pin(MIC_I2S_PORT, &pins) == ESP_OK;
 }
 
+bool LilyGo_Glass::setAudioSampleRate(int sampleRate)
+{
+#ifdef USE_ESP_CODEC_LIB
+    (void)sampleRate;
+    return true;
+#else
+    if (!_es8311_detected) return false;
+
+    const samplerate_t codecRate = codecRateFor(sampleRate);
+    const int effectiveRate = numericRate(codecRate);
+    if (_audio_sample_rate == effectiveRate) return true;
+
+    CodecConfig codecConfig;
+    codecConfig.input_device = ADC_INPUT_NONE;
+    codecConfig.output_device = DAC_OUTPUT_ALL;
+    codecConfig.i2s.bits = BIT_LENGTH_16BITS;
+    codecConfig.i2s.rate = codecRate;
+    codecConfig.i2s.channels = CHANNELS2;
+    codecConfig.i2s.fmt = I2S_NORMAL;
+    codecConfig.i2s.mode = MODE_SLAVE;
+    codecConfig.i2s.signal_type = SIGNAL_DIGITAL;
+
+    const int codecVolume = audioOutputDev.getVolume();
+    audioOutputDev.setMute(true);
+    const bool configured = audioOutputDev.setConfig(codecConfig);
+    audioOutputDev.setVolume(codecVolume);
+    audioOutputDev.setMute(false);
+    if (configured) {
+        _audio_sample_rate = effectiveRate;
+    }
+    return configured;
+#endif
+}
+
 
 void LilyGo_Glass::deinitI2S()
 {
@@ -276,7 +376,7 @@ void LilyGo_Glass::deinitI2S()
 }
 
 
-bool LilyGo_Glass::begin()
+bool LilyGo_Glass::begin(bool initializeCamera)
 {
     pinMode(LORA_RST, OUTPUT);
     digitalWrite(LORA_RST, HIGH);
@@ -351,8 +451,9 @@ bool LilyGo_Glass::begin()
         audio_dac_cfg.input_device = ADC_INPUT_NONE;
         audio_dac_cfg.output_device = DAC_OUTPUT_ALL;
         audio_dac_cfg.i2s.bits = BIT_LENGTH_16BITS;
-        audio_dac_cfg.i2s.rate = RATE_8K;
+        audio_dac_cfg.i2s.rate = RATE_44K;
         if (audioOutputDev.begin(audio_dac_cfg)) {
+            _audio_sample_rate = 44100;
             log_d("Audio DAC initialized successfully\n");
         } else {
             log_e("Audio DAC initialization failed\n");
@@ -361,7 +462,7 @@ bool LilyGo_Glass::begin()
         audioOutputDev.setMute(false);
 #endif
 
-        audioOut = new AudioOutputI2S(MIC_I2S_PORT, AudioOutputI2S::EXTERNAL_I2S);
+        audioOut = new GlassAudioOutputI2S(this, MIC_I2S_PORT, AudioOutputI2S::EXTERNAL_I2S);
         audioOut->SetPinout(I2S_SCK, I2S_WS, I2S_SDOUT, I2S_MCLK);
         audioOut->SetGain(1);
 
@@ -419,11 +520,16 @@ bool LilyGo_Glass::begin()
         log_e("Power management initialization failed\n");
     }
 
-    res = initCamera();
-    if (res) {
-        log_d("Camera initialized successfully\n");
+    if (initializeCamera) {
+        res = initCamera();
+        if (res) {
+            log_d("Camera initialized successfully\n");
+        } else {
+            log_e("Camera initialization failed\n");
+        }
     } else {
-        log_e("Camera initialization failed\n");
+        _camera_detected = false;
+        log_d("Camera initialization skipped\n");
     }
 
     expander.digitalWrite(1, HIGH);

@@ -12,8 +12,8 @@
 
    | SSID | 密码 |
    | --- | --- |
-   | `xinyuandianzi` | `AA15994823428` |
-   | `LilyGo-AABB` | `xinyuandianzi` |
+   | `YOUR_WIFI_SSID` | `YOUR_WIFI_PASSWORD` |
+   | `YOUR_WIFI_SSID_2` | `YOUR_WIFI_PASSWORD_2` |
 
 4. 给设备上电。固件连接 Wi-Fi 后进入 T0 摄像头页面；两个热点均不可用时，固件会停留在等待连接状态。
 

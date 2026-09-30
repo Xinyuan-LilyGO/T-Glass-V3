@@ -12,8 +12,8 @@
 
    | SSID | Password |
    | --- | --- |
-   | `xinyuandianzi` | `AA15994823428` |
-   | `LilyGo-AABB` | `xinyuandianzi` |
+   | `YOUR_WIFI_SSID` | `YOUR_WIFI_PASSWORD` |
+   | `YOUR_WIFI_SSID_2` | `YOUR_WIFI_PASSWORD_2` |
 
 4. Power on the board. The firmware opens the T0 camera page after Wi-Fi connects. If neither access point is available, startup waits for a connection.
 

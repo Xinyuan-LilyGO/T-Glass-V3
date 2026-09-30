@@ -1,0 +1,11 @@
+tree 6fd1035e0002ae34c25c31b0d9dc69acc69a021a
+parent 0148dfc7f0722199df89a19d5774f55c20d1a379
+parent ca8bfe69155379c3adb5af9beb5b40824c9d5456
+author Sun Xiang Yu <sunxiangyu@espressif.com> 1790163911 +0800
+committer Sun Xiang Yu <sunxiangyu@espressif.com> 1790163911 +0800
+
+Merge branch 'fix/conv_c_perf' into 'master'
+
+fix: fix conv c kernel perf issue.
+
+See merge request ai/esp-dl!353

@@ -142,9 +142,10 @@ public:
 
     /**
      * @brief  Initialise all onboard peripherals (I2C, display, gauge, etc.).
+     * @param initializeCamera  Start the camera task when true (default).
      * @return true on success, false if a critical peripheral fails to respond.
      */
-    bool begin();
+    bool begin(bool initializeCamera = true);
 
     /**
      * @brief  Initialise the ESP32-S3 camera interface.
@@ -159,6 +160,13 @@ public:
      * @return true on success.
      */
     bool initI2S();
+
+    /**
+     * @brief  Keep the ES8311 clock configuration aligned with MP3 output.
+     * @param sampleRate  Decoder sample rate in Hz.
+     * @return true when the codec accepted the requested rate.
+     */
+    bool setAudioSampleRate(int sampleRate);
 
     /** @brief  Release the I2S bus and associated DMA buffers. */
     void deinitI2S();
@@ -381,6 +389,7 @@ private:
     uint16_t _width;                /**< Active display width in pixels       */
     uint16_t _height;               /**< Active display height in pixels      */
     uint16_t *_frame_buffer;        /**< Pointer to the software frame buffer */
+    int _audio_sample_rate = 0;     /**< Current ES8311 playback rate in Hz   */
     bool _gauge_online;             /**< true if BQ27220 was found on I2C     */
     bool _es8311_detected;          /**< true if ES8311 codec was found       */
     bool _es7210_detected;          /**< true if ES7210 mic array was found   */

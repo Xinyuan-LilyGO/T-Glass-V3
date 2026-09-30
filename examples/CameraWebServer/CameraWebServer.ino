@@ -32,7 +32,7 @@ void startCameraServer();
 void setupLedFlash(int pin);
 
 
-bool setCameraPower(bool enable)
+static bool setCameraPower(bool enable)
 {
     static bool started = false;
     if (!started) {
@@ -138,6 +138,7 @@ void setup()
         // Best option for face detection/recognition
         config.frame_size = FRAMESIZE_240X240;
         config.fb_count = 2;
+        Serial.println("66666666666666666666666666");
     }
 
     // camera init
