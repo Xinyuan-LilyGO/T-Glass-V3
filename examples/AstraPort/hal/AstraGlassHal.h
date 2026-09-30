@@ -9,6 +9,15 @@
 #include "../AstraStatusBar.h"
 #include "../AstraPortSurface.h"
 
+enum class AstraScreenPattern : std::uint8_t {
+    White,
+    Black,
+    Red,
+    Green,
+    Blue,
+    Checkerboard,
+};
+
 class AstraGlassHal final : public HAL {
 public:
     explicit AstraGlassHal(LilyGo_Glass &glass);
@@ -62,6 +71,7 @@ public:
                             std::size_t frameLength,
                             std::uint16_t width,
                             std::uint16_t height);
+    bool presentScreenPattern(AstraScreenPattern pattern);
 
     AstraPortSurface &surface();
 

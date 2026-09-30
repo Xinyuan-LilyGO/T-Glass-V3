@@ -66,21 +66,32 @@ void loop() {
                 astraLauncher->applyGestureAction(action);
             }
         }
+
+        const char *shutdownNotice = astraServices->takeShutdownNotice();
+        if (shutdownNotice != nullptr) {
+            astraLauncher->popInfo(shutdownNotice, 1200);
+        }
     }
     if (astraDinoJump != nullptr && astraDinoJump->isActive()) {
         astraDinoJump->update();
     } else if (astraLauncher != nullptr) {
         astraLauncher->update(false);
-        if (astraServices != nullptr) {
-            astraServices->renderStatusBar();
-        }
-        const bool gestureDisplayActive =
-            astraServices != nullptr && astraServices->gesture3DDisplayActive();
-        if (!gestureDisplayActive) {
-            HAL::canvasUpdate();
+        const bool screenTestActive =
+            astraServices != nullptr && astraServices->screenTestActive();
+        if (screenTestActive) {
+            astraServices->renderScreenTest();
+        } else {
+            if (astraServices != nullptr) {
+                astraServices->renderStatusBar();
+            }
+            const bool gestureDisplayActive =
+                astraServices != nullptr && astraServices->gesture3DDisplayActive();
+            if (!gestureDisplayActive) {
+                HAL::canvasUpdate();
+            }
         }
     }
-    if (astraServices != nullptr) {
+    if (astraServices != nullptr && !astraServices->screenTestActive()) {
         astraServices->renderGesture3D();
     }
     glass.update();

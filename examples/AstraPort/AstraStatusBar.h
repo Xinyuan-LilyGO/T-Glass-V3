@@ -11,6 +11,8 @@ inline constexpr std::int16_t kHeight = 10;
 inline constexpr std::int16_t kContentTopInset = kHeight;
 inline constexpr std::int16_t kWifiIconWidth = 10;
 inline constexpr std::int16_t kWifiIconHeight = 10;
+inline constexpr std::int16_t kChargingIconWidth = 10;
+inline constexpr std::int16_t kChargingIconHeight = 10;
 
 enum class NetworkState : std::uint8_t {
     Disabled,
@@ -48,6 +50,19 @@ inline std::uint16_t wifiIconRow(NetworkState state, int row) {
     };
 
     return state == NetworkState::Connected ? kWifi[row] : kNoWifi[row];
+}
+
+inline std::uint16_t chargingIconRow(int row) {
+    if (row < 0 || row >= kChargingIconHeight) {
+        return 0;
+    }
+
+    // 10x10 alpha mask extracted from 充电中.png.
+    static constexpr std::uint16_t kCharging[] = {
+        0x000, 0x010, 0x030, 0x070, 0x078,
+        0x078, 0x038, 0x030, 0x020, 0x000,
+    };
+    return kCharging[row];
 }
 
 inline std::string formatClock(int hour, int minute) {

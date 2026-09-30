@@ -98,6 +98,8 @@ public:
     const char *saveDisplayCalibration();
     const char *setBrightnessLevel(std::uint8_t brightness);
     const char *sleepNow();
+    const char *shutdownNow();
+    const char *takeShutdownNotice();
 
     bool &wifiEnabledSetting();
     bool &gestureEnabledSetting();
@@ -119,6 +121,11 @@ public:
     void toggleRadioPlayback();
     void enterCameraStream();
     void exitCameraStream();
+    void enterScreenTest(AstraScreenPattern pattern);
+    void advanceScreenTestPattern();
+    void exitScreenTest();
+    void renderScreenTest();
+    bool screenTestActive() const;
     bool gesture3DDisplayActive() const;
 
 private:
@@ -143,6 +150,7 @@ private:
     void updateAudioLevels();
     void updateRtttl();
     void updateBattery();
+    void updateBootForceShutdown();
     void updateWifi();
     void updateGesture3D();
     bool startGesture3D();
@@ -187,6 +195,7 @@ private:
 
     std::uint16_t batteryVoltage_ = 0;
     int batteryPercent_ = 0;
+    bool charging_ = false;
     std::uint32_t lastAudioUpdate_ = 0;
     std::uint32_t lastBatteryUpdate_ = 0;
 
@@ -210,7 +219,13 @@ private:
     bool gestureControlMode_ = false;
     astra_gesture_control::Action pendingGestureAction_ = astra_gesture_control::Action::None;
     bool cameraStreamPageActive_ = false;
+    AstraScreenPattern screenPattern_ = AstraScreenPattern::White;
+    bool screenTestActive_ = false;
     std::uint32_t lastWifiAttempt_ = 0;
+    std::uint32_t bootPressedAt_ = 0;
+    bool bootPressTracking_ = false;
+    bool bootForceShutdownTriggered_ = false;
+    const char *pendingShutdownNotice_ = nullptr;
 
     static AstraGlassServices *activeRadioService_;
 };

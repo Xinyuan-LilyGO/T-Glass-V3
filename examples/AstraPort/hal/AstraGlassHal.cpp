@@ -72,6 +72,52 @@ void AstraGlassHal::_canvasUpdate() {
                       static_cast<std::uint32_t>(AstraPortSurface::kPhysicalPixelCount));
 }
 
+bool AstraGlassHal::presentScreenPattern(AstraScreenPattern pattern) {
+    if (rgb565_ == nullptr) {
+        return false;
+    }
+
+    std::uint16_t solidColor = 0x0000;
+    switch (pattern) {
+        case AstraScreenPattern::White:
+            solidColor = 0xFFFF;
+            break;
+        case AstraScreenPattern::Red:
+            solidColor = 0xF800;
+            break;
+        case AstraScreenPattern::Green:
+            solidColor = 0x07E0;
+            break;
+        case AstraScreenPattern::Blue:
+            solidColor = 0x001F;
+            break;
+        case AstraScreenPattern::Black:
+        default:
+            solidColor = 0x0000;
+            break;
+    }
+
+    for (std::size_t index = 0; index < AstraPortSurface::kPhysicalPixelCount; ++index) {
+        if (pattern != AstraScreenPattern::Checkerboard) {
+            rgb565_[index] = solidColor;
+            continue;
+        }
+
+        const std::size_t x = index % static_cast<std::size_t>(AstraPortSurface::kPhysicalWidth);
+        const std::size_t y = index / static_cast<std::size_t>(AstraPortSurface::kPhysicalWidth);
+        rgb565_[index] = ((x / 4U + y / 4U) & 1U) != 0U ? 0xFFFF : 0x0000;
+    }
+
+    cameraFramePending_ = false;
+    glass_.setAddrWindow(0,
+                         kDisplayOffsetY,
+                         static_cast<std::uint16_t>(AstraPortSurface::kPhysicalWidth),
+                         static_cast<std::uint16_t>(AstraPortSurface::kPhysicalHeight));
+    glass_.pushColors(rgb565_,
+                      static_cast<std::uint32_t>(AstraPortSurface::kPhysicalPixelCount));
+    return true;
+}
+
 void AstraGlassHal::_canvasClear() {
     surface_.clear();
 }

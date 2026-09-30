@@ -32,6 +32,7 @@ enum class TextId : std::size_t {
     TimeNtp,
     DinoJump,
     Battery,
+    Screen,
     Voltage,
     Charge,
     DisplayCalibration,
@@ -45,6 +46,7 @@ enum class TextId : std::size_t {
     Wifi,
     GestureRecognition,
     Sleep,
+    Shutdown,
     FactoryDiagnostics,
     LanguageMenu,
     Chinese,
@@ -116,6 +118,7 @@ enum class TextId : std::size_t {
     DisplaySaved,
     BrightnessSet,
     Sleeping,
+    ShutdownBlockedUsb,
     RadioStationError,
     Count,
 };
@@ -151,6 +154,7 @@ inline constexpr TextPair kTextTable[] = {
     {"时间与 NTP", "Time & NTP"},
     {"恐龙跳一跳", "Dino Jump"},
     {"电池", "Battery"},
+    {"屏幕", "Screen"},
     {"电压: ", "Voltage: "},
     {"电量: ", "Charge: "},
     {"屏幕校准", "Display Calibration"},
@@ -164,6 +168,7 @@ inline constexpr TextPair kTextTable[] = {
     {"WiFi", "WiFi"},
     {"手势识别", "Gesture Recognition"},
     {"休眠", "Sleep"},
+    {"关机", "Power Off"},
     {"工厂诊断", "Factory Diagnostics"},
     {"语言", "Language"},
     {"中文", "Chinese"},
@@ -235,6 +240,7 @@ inline constexpr TextPair kTextTable[] = {
     {"屏幕设置已保存", "Display saved"},
     {"亮度已设置", "Brightness set"},
     {"正在休眠", "Sleeping"},
+    {"请拔出 USB", "Unplug USB"},
     {"电台选择错误", "Radio station error"},
 };
 

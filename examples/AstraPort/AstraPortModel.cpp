@@ -135,6 +135,24 @@ void exitCameraStream(void *context) {
     static_cast<AstraGlassServices *>(context)->exitCameraStream();
 }
 
+void enterScreenTestPage(void *context) {
+    static_cast<AstraGlassServices *>(context)->enterScreenTest(AstraScreenPattern::White);
+}
+
+bool cycleScreenTest(void *context, unsigned char keyIndex) {
+    (void)keyIndex;
+    auto *services = static_cast<AstraGlassServices *>(context);
+    if (services == nullptr || !services->screenTestActive()) {
+        return false;
+    }
+    services->advanceScreenTestPattern();
+    return true;
+}
+
+void exitScreenTest(void *context) {
+    static_cast<AstraGlassServices *>(context)->exitScreenTest();
+}
+
 void renderMicrophone(void *context) {
     static_cast<AstraGlassServices *>(context)->renderMicrophone();
 }
@@ -308,6 +326,10 @@ const char *sleepDevice(void *context) {
     return static_cast<AstraGlassServices *>(context)->sleepNow();
 }
 
+const char *shutdownDevice(void *context) {
+    return static_cast<AstraGlassServices *>(context)->shutdownNow();
+}
+
 const char *toggleWifi(void *context) {
     return static_cast<AstraGlassServices *>(context)->toggleWifi();
 }
@@ -449,6 +471,14 @@ AstraPortPages buildFeaturePages(AstraGlassServices *services,
     }
     pages.devicePage->addItem(new AstraStatusPage(TextId::Battery, services, renderBattery));
 
+    auto *screen = new AstraStatusPage(TextId::Screen,
+                                       services,
+                                       nullptr,
+                                       enterScreenTestPage,
+                                       exitScreenTest);
+    screen->setClickCallback(cycleScreenTest, services);
+    pages.devicePage->addItem(screen);
+
     auto *calibration = localizedList(TextId::DisplayCalibration, services);
     calibration->addItem(localizedAction(TextId::MoveUp, services, services, moveDisplayUp));
     calibration->addItem(localizedAction(TextId::MoveDown, services, services, moveDisplayDown));
@@ -484,6 +514,10 @@ AstraPortPages buildFeaturePages(AstraGlassServices *services,
     pages.devicePage->addItem(settings);
 
     pages.devicePage->addItem(localizedAction(TextId::Sleep, services, services, sleepDevice));
+    pages.devicePage->addItem(localizedAction(TextId::Shutdown,
+                                               services,
+                                               services,
+                                               shutdownDevice));
     pages.devicePage->addItem(new AstraStatusPage(TextId::FactoryDiagnostics,
                                                   services,
                                                   renderDiagnostics));

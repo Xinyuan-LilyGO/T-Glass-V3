@@ -25,6 +25,7 @@ constexpr std::uint16_t kRadioTextWidth = 124;
 constexpr std::uint32_t kRadioMarqueeStepMs = 260;
 constexpr std::uint32_t kLoRaTransmitIntervalMs = 1000;
 constexpr std::uint32_t kWifiRetryIntervalMs = 10000;
+constexpr std::uint32_t kBootForceShutdownHoldMs = 5000;
 
 struct WifiCredential {
     const char *ssid;
@@ -222,6 +223,7 @@ void AstraGlassServices::begin() {
 }
 
 void AstraGlassServices::update() {
+    updateBootForceShutdown();
     updateWifi();
     updateGesture3D();
     radioPlayer_.update();
@@ -233,6 +235,40 @@ void AstraGlassServices::update() {
     } else if (receiveActive_) {
         pollLoRaReceive();
     }
+}
+
+void AstraGlassServices::updateBootForceShutdown() {
+    const std::uint32_t now = millis();
+    const bool pressed = digitalRead(BOARD_BOOT_PIN) == LOW;
+
+    if (!pressed) {
+        bootPressTracking_ = false;
+        bootForceShutdownTriggered_ = false;
+        return;
+    }
+
+    if (!bootPressTracking_) {
+        bootPressTracking_ = true;
+        bootPressedAt_ = now;
+        return;
+    }
+
+    if (bootForceShutdownTriggered_ || now - bootPressedAt_ < kBootForceShutdownHoldMs) {
+        return;
+    }
+
+    bootForceShutdownTriggered_ = true;
+    Serial.println("BOOT held for 5 seconds: forcing shutdown");
+    const char *message = shutdownNow();
+    if (message != nullptr) {
+        pendingShutdownNotice_ = message;
+    }
+}
+
+const char *AstraGlassServices::takeShutdownNotice() {
+    const char *notice = pendingShutdownNotice_;
+    pendingShutdownNotice_ = nullptr;
+    return notice;
 }
 
 void AstraGlassServices::startWifi() {
@@ -360,6 +396,8 @@ void AstraGlassServices::updateBattery() {
     lastBatteryUpdate_ = now;
     batteryVoltage_ = glass_.getBattVoltage();
     batteryPercent_ = glass_.getBatteryPercent();
+    const bool usbConnected = glass_.ppm.isVbusIn();
+    charging_ = usbConnected && glass_.ppm.isCharging();
 }
 
 void AstraGlassServices::updateAudioLevels() {
@@ -546,6 +584,61 @@ bool AstraGlassServices::takeGestureAction(astra_gesture_control::Action &action
 
 void AstraGlassServices::toggleRadioPlayback() {
     radioPlayer_.togglePlayback();
+}
+
+void AstraGlassServices::enterScreenTest(AstraScreenPattern pattern) {
+    cameraStreamPageActive_ = false;
+    cameraWebServer_.stop();
+    gesturePageActive_ = false;
+    gestureControlPageActive_ = false;
+    gestureControlMode_ = false;
+    pendingGestureAction_ = astra_gesture_control::Action::None;
+    gesture3D_.stop();
+    screenPattern_ = pattern;
+    screenTestActive_ = true;
+}
+
+void AstraGlassServices::advanceScreenTestPattern() {
+    if (!screenTestActive_) {
+        return;
+    }
+
+    switch (screenPattern_) {
+        case AstraScreenPattern::White:
+            screenPattern_ = AstraScreenPattern::Black;
+            break;
+        case AstraScreenPattern::Black:
+            screenPattern_ = AstraScreenPattern::Red;
+            break;
+        case AstraScreenPattern::Red:
+            screenPattern_ = AstraScreenPattern::Green;
+            break;
+        case AstraScreenPattern::Green:
+            screenPattern_ = AstraScreenPattern::Blue;
+            break;
+        case AstraScreenPattern::Blue:
+            screenPattern_ = AstraScreenPattern::Checkerboard;
+            break;
+        case AstraScreenPattern::Checkerboard:
+        default:
+            screenPattern_ = AstraScreenPattern::White;
+            break;
+    }
+}
+
+void AstraGlassServices::exitScreenTest() {
+    screenTestActive_ = false;
+}
+
+void AstraGlassServices::renderScreenTest() {
+    if (!screenTestActive_) {
+        return;
+    }
+    hal_.presentScreenPattern(screenPattern_);
+}
+
+bool AstraGlassServices::screenTestActive() const {
+    return screenTestActive_;
 }
 
 void AstraGlassServices::enterCameraStream() {
@@ -861,6 +954,17 @@ const char *AstraGlassServices::sleepNow() {
     return text(astra_language::TextId::Sleeping);
 }
 
+const char *AstraGlassServices::shutdownNow() {
+    if (glass_.ppm.isVbusIn()) {
+        Serial.println("Power off blocked: USB/VBUS is connected");
+        return text(astra_language::TextId::ShutdownBlockedUsb);
+    }
+
+    Serial.println("Powering off");
+    glass_.ppm.shutdown();
+    return nullptr;
+}
+
 void AstraGlassServices::drawHeader(const char *title) const {
     HAL::setFont(u8g2_font_wqy12_t_gb2312);
     HAL::setDrawType(1);
@@ -963,6 +1067,22 @@ void AstraGlassServices::renderStatusBar() const {
     if (fillWidth > 0) {
         HAL::drawBox(batteryX + 1, 3, fillWidth, 4);
     }
+
+    if (charging_) {
+        const int chargingX = batteryX - astra_status_bar::kChargingIconWidth - 2;
+        for (std::int16_t row = 0; row < astra_status_bar::kChargingIconHeight; ++row) {
+            const std::uint16_t mask = astra_status_bar::chargingIconRow(row);
+            for (std::int16_t column = 0;
+                 column < astra_status_bar::kChargingIconWidth;
+                 ++column) {
+                if ((mask & (static_cast<std::uint16_t>(1U) <<
+                             (astra_status_bar::kChargingIconWidth - 1 - column))) != 0) {
+                    HAL::drawPixel(chargingX + column, row);
+                }
+            }
+        }
+    }
+
     HAL::drawEnglish(batteryTextX, 7, batteryText);
     HAL::drawHLine(0, astra_status_bar::kHeight - 1, AstraPortSurface::kWidth);
 
@@ -1005,12 +1125,12 @@ void AstraGlassServices::renderCameraStreamStatus() {
     }
 
     const std::string ip = asStdString(WiFi.localIP().toString());
-    drawLine(text(astra_language::TextId::Web), 19);
-    drawLine(ip + "/", 33);
-    drawLine(text(astra_language::TextId::Stream), 45);
+    drawLine(text(astra_language::TextId::Web), 20);
+    drawLine(ip + "/", 34);
+    drawLine(text(astra_language::TextId::Stream), 48);
     drawLine(text(cameraWebServer_.isRunning() ? astra_language::TextId::ServerOnline
                                                 : astra_language::TextId::ServerStarting),
-             53);
+             60);
 }
 
 void AstraGlassServices::renderGestureControlStatus() {
@@ -1027,7 +1147,7 @@ void AstraGlassServices::renderGestureControlStatus() {
 }
 
 void AstraGlassServices::renderGesture3D() {
-    if (gestureControlMode_ || !gesture3D_.isActive()) {
+    if (screenTestActive_ || gestureControlMode_ || !gesture3D_.isActive()) {
         return;
     }
     gesture3D_.render();

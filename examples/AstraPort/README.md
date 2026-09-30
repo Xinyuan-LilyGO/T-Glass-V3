@@ -68,12 +68,13 @@ Astra Home
 | Input | Short press | Long press, about 1 second |
 | --- | --- | --- |
 | GPIO1 / TOUCH | Move to the next item | Open, confirm, or execute |
-| GPIO0 / BOOT | Move to the previous item | Return to the previous page |
+| GPIO0 / BOOT | Move to the previous item | Hold about 1 second and release to return; hold continuously for 5 seconds to power off |
 
 Page-specific behavior:
 
 - **Dino Jump**: TOUCH starts or restarts the game and jumps while running. BOOT jumps. A long BOOT press exits the game. The current physics gives the dino a higher jump, longer airtime, and longer horizontal coverage.
 - **Internet Radio**: short presses move through the station list, a long TOUCH press selects a station, and a long BOOT press exits and stops playback.
+- **BOOT timing**: hold BOOT for about 1 second and release to return to the previous page. Keeping it held continuously for 5 seconds requests an immediate power off; USB/VBUS connected blocks power off.
 - **Display Calibration**: select Move Up, Move Down, Move Left, or Move Right and long-press TOUCH to adjust by 5 pixels; select Save to persist the change.
 - **Brightness**: choose 25%, 50%, 75%, or 100%.
 - **Sleep**: enters ESP32 deep sleep; GPIO1 is configured as the wake source.
@@ -281,12 +282,13 @@ Astra 首页
 | 输入 | 短按 | 长按约 1 秒 |
 | --- | --- | --- |
 | GPIO1 / TOUCH | 下移、选择下一项 | 进入页面、确认或执行操作 |
-| GPIO0 / BOOT | 上移、选择上一项 | 返回上一级页面 |
+| GPIO0 / BOOT | 上移、选择上一项 | 按住约 1 秒后松开返回上一级；持续按住 5 秒关机 |
 
 特殊页面：
 
 - **恐龙跳一跳**：TOUCH 短按开始/重新开始，游戏中可跳跃；BOOT 短按跳跃；BOOT 长按退出游戏。当前恐龙跳得更高、滞空时间更长，可以跨越更远距离。
 - **网络电台**：短按移动电台列表，长按选择电台；BOOT 长按退出并停止播放。
+- **BOOT 时序**：BOOT 按住约 1 秒后松开返回上一级；持续按住 5 秒请求立即关机，检测到 USB/VBUS 接入时会阻止关机。
 - **屏幕校准**：选择上移、下移、左移或右移后长按 TOUCH，每次调整 5 像素；选择保存后写入设置。
 - **亮度**：选择 25%、50%、75% 或 100%。
 - **休眠**：进入 ESP32 深度睡眠，GPIO1 可用于唤醒。
