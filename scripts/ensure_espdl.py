@@ -62,6 +62,19 @@ def _extract_archive(archive: Path, destination: Path) -> None:
         raise RuntimeError("The downloaded ESP-DL archive is invalid.") from exc
 
 
+def _backup_incomplete_tree(espdl_root: Path) -> Path:
+    backup_root = Path(
+        tempfile.mkdtemp(
+            prefix="esp-dl-incomplete-",
+            dir=str(espdl_root.parent),
+        )
+    )
+    backup_root.rmdir()
+    shutil.move(str(espdl_root), str(backup_root))
+    print(f"Incomplete ESP-DL directory preserved at {backup_root}")
+    return backup_root
+
+
 def ensure_espdl(project_dir: str | os.PathLike[str], downloader=None) -> Path:
     """Return a usable ESP-DL tree, downloading it when the tree is missing."""
 
@@ -75,12 +88,6 @@ def ensure_espdl(project_dir: str | os.PathLike[str], downloader=None) -> Path:
             raise RuntimeError(
                 f"ESP-DL path is not a directory: {espdl_root}"
             )
-        if any(espdl_root.iterdir()):
-            raise RuntimeError(
-                "ESP-DL is present but incomplete at "
-                f"{espdl_root}. Move that directory aside and build again."
-            )
-        espdl_root.rmdir()
 
     espdl_root.parent.mkdir(parents=True, exist_ok=True)
     fetch = downloader or _download_archive
@@ -105,7 +112,15 @@ def ensure_espdl(project_dir: str | os.PathLike[str], downloader=None) -> Path:
                 "The downloaded ESP-DL archive does not contain the expected "
                 "esp-dl/cmake/compile_finalize.py file."
             )
-        shutil.move(str(candidates[0]), str(espdl_root))
+        previous_root = None
+        if espdl_root.exists():
+            previous_root = _backup_incomplete_tree(espdl_root)
+        try:
+            shutil.move(str(candidates[0]), str(espdl_root))
+        except Exception:
+            if previous_root is not None and not espdl_root.exists():
+                shutil.move(str(previous_root), str(espdl_root))
+            raise
 
     if not _compile_finalize_path(espdl_root).is_file():
         raise RuntimeError(
