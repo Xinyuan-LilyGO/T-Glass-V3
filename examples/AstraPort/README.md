@@ -170,7 +170,6 @@ Both devices must use the same frequency, bandwidth, spreading factor, coding ra
 platformio.ini points src_dir to examples/AstraPort. The T-Glass environment is recommended:
 
 ~~~powershell
-git submodule update --init --recursive
 pio run -e T-Glass
 pio run -e T-Glass -t upload
 pio device monitor -b 115200
@@ -178,7 +177,7 @@ pio device monitor -b 115200
 
 PlatformIO IDE can use the T-Glass environment for Build, Upload, and Monitor. The Factory_Astra environment is also kept in platformio.ini and can be selected with `pio run -e Factory_Astra`.
 
-Gesture recognition requires the third_party/esp-dl submodule. The detector and classifier models are embedded through board_build.embed_files; do not remove or rename files under examples/AstraPort/models.
+Gesture recognition uses the pinned ESP-DL source under third_party/esp-dl. PlatformIO checks this dependency during the pre-build step. If the repository was downloaded as a ZIP, the missing ESP-DL source is downloaded and prepared automatically; a normal Git clone may still initialize the submodule with `git submodule update --init --recursive`. The detector and classifier models are embedded through board_build.embed_files; do not remove or rename files under examples/AstraPort/models.
 
 WiFi supports two build-time credential pairs. Factory_Astra defaults to the placeholder values shown in this example, and local build_flags can override them:
 
@@ -384,7 +383,6 @@ CRC: disabled
 Factory_Astra 已经通过 platformio.ini 的 src_dir 指向 examples/AstraPort，推荐使用 T-Glass 环境。源码目录名保留为 `examples/AstraPort`，以兼容现有内部类名和模型链接符号：
 
 ~~~powershell
-git submodule update --init --recursive
 pio run -e T-Glass
 pio run -e T-Glass -t upload
 pio device monitor -b 115200
@@ -392,7 +390,7 @@ pio device monitor -b 115200
 
 也可以在 PlatformIO IDE 中选择 T-Glass 环境执行 Build、Upload 和 Monitor。Factory_Astra 环境也保留在 platformio.ini 中，可使用 `pio run -e Factory_Astra`。
 
-手势识别需要 third_party/esp-dl 子模块。手势检测模型和手势分类模型会通过 board_build.embed_files 嵌入固件，不要删除或重命名 examples/AstraPort/models 下的模型文件。
+手势识别使用 `third_party/esp-dl` 下固定版本的 ESP-DL 源码。PlatformIO 会在预编译阶段检查依赖；如果用户下载的是 GitHub ZIP，缺少的 ESP-DL 源码会自动下载并准备，普通 Git 克隆仍然可以使用 `git submodule update --init --recursive` 初始化子模块。手势检测模型和手势分类模型会通过 board_build.embed_files 嵌入固件，不要删除或重命名 examples/AstraPort/models 下的模型文件。
 
 WiFi 支持以下两组编译宏。Factory_Astra 默认使用当前示例中的占位值，也可以在本地 build_flags 中覆盖：
 

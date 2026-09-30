@@ -6,10 +6,16 @@ import sys
 
 
 project_dir = env.subst("$PROJECT_DIR")
+scripts_dir = os.path.join(project_dir, "scripts")
+if scripts_dir not in sys.path:
+    sys.path.insert(0, scripts_dir)
+from ensure_espdl import ensure_espdl
+
+
 astra_port_src = os.path.join(project_dir, "examples", "AstraPort")
 radio_demo_src = os.path.join(project_dir, "examples", "RadioDemo")
 shared_hardware_src = os.path.join(project_dir, "src")
-espdl_root = os.path.join(project_dir, "third_party", "esp-dl")
+espdl_root = str(ensure_espdl(project_dir))
 gesture_models_src = os.path.join(astra_port_src, "camera", "Gesture3D")
 framework_dir = env.PioPlatform().get_package_dir(
     "framework-arduinoespressif32"
@@ -53,12 +59,6 @@ env.Append(
         + framework_include_dirs
         + project_dependency_include_dirs
 )
-
-if not os.path.isdir(espdl_root):
-    raise RuntimeError(
-        "Factory_Astra gesture support expects the ESP-DL submodule at: "
-        + espdl_root
-    )
 
 espdl_generated = os.path.join(env.subst("$BUILD_DIR"), "espdl_generated")
 os.makedirs(espdl_generated, exist_ok=True)
