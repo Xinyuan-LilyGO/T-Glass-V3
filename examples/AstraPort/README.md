@@ -214,6 +214,96 @@ examples/AstraPort/
 └── platformio_src.py       Factory_Astra build source configuration
 ~~~
 
+The default PlatformIO source is `examples/AstraPort` and the default environment is `T-Glass`. To build the other AstraPort environment, select `Factory_Astra` explicitly:
+
+```powershell
+pio run -e T-Glass
+pio run -e Factory_Astra
+```
+
+## Factory_Astra and ESP-DL
+
+`examples/AstraPort` uses Espressif ESP-DL for hand detection and gesture classification. ESP-DL is a source dependency, not just a library header: the pre-build script runs `examples/AstraPort/platformio_src.py`, calls `scripts/ensure_espdl.py`, and invokes ESP-DL's `compile_finalize.py` to generate the files under `.pio/build/<environment>/espdl_generated`.
+
+The repository registers ESP-DL as a submodule at the pinned revision used by the build:
+
+```text
+third_party/esp-dl/
+└── esp-dl/
+    ├── cmake/compile_finalize.py
+    ├── CMakeLists.txt
+    └── fbs_loader/lib/esp32s3/libfbs_model.a
+```
+
+### Clone with ESP-DL
+
+Use a recursive clone for a normal Git checkout:
+
+```bash
+git clone --recurse-submodules https://github.com/Xinyuan-LilyGO/T-Glass-V3.git
+cd T-Glass-V3
+```
+
+If the repository is already cloned, initialize or repair the submodule from the repository root:
+
+```bash
+git submodule sync --recursive
+git submodule update --init --recursive
+```
+
+On PowerShell, verify the two files required by the AstraPort build:
+
+```powershell
+Test-Path .\third_party\esp-dl\esp-dl\cmake\compile_finalize.py
+Test-Path .\third_party\esp-dl\esp-dl\fbs_loader\lib\esp32s3\libfbs_model.a
+```
+
+Both commands must print `True`.
+
+### ZIP downloads and `compile_finalize.py` errors
+
+A GitHub ZIP download does not contain active submodule contents. For that case, the AstraPort pre-build script automatically downloads the pinned ESP-DL archive from GitHub and prepares `third_party/esp-dl`. The first build therefore needs network access to GitHub. An incomplete directory is kept as a backup if it must be replaced; do not copy a random `esp-dl-master` directory beside the repository or rename the nested `esp-dl` directory.
+
+This error means the ESP-DL tree is missing or incomplete:
+
+```text
+can't open file ...third_party/esp-dl/esp-dl/cmake/compile_finalize.py
+```
+
+Fix it from the repository root, then build again:
+
+```bash
+git submodule update --init --recursive --force
+```
+
+If the checkout still contains an incomplete submodule, reinitialize only that submodule and retry:
+
+```bash
+git submodule deinit -f -- third_party/esp-dl
+git submodule update --init --recursive
+```
+
+The PlatformIO pre-build script must be run from the repository's own `examples/AstraPort/platformio_src.py`; it must resolve ESP-DL as `third_party/esp-dl` inside this repository. Do not restore the old external-sibling or machine-specific ESP-DL path.
+
+### Python version
+
+Use Python **3.10 through 3.14** for PlatformIO and the ESP-DL preparation step. Python 3.9 is unsupported. The GitHub Actions workflow uses Python 3.11. If CI or PlatformIO reports `Current Python version: 3.9.x`, install a supported Python version and recreate or update the PlatformIO environment before running `pio run` again.
+
+### ESP-DL runtime memory failure
+
+If compilation succeeds but entering 3D Gesture prints an error similar to this and reboots:
+
+```text
+Input cap=0x400 can not allocate with MALLOC_CAP_SIMD
+Failed to alloc ... PSRAM
+largest available PSRAM block size ...
+MemoryManagerGreedy: root_alloc failed
+```
+
+This is a contiguous-PSRAM/runtime-memory problem, not a missing `compile_finalize.py` problem. Camera web streaming and ESP-DL gesture inference must not own the camera and model memory at the same time. Exit Camera Stream before entering Gesture3D; Factory_Astra stops the web server and defers WiFi reconnects while gesture recognition owns the camera. After a failed allocation, reboot the board before retrying so fragmented PSRAM is released. Keep the ESP32-S3 board profile, QSPI PSRAM setting, pinned PlatformIO platform, and the two `.espdl` model files under `examples/AstraPort/models` unchanged.
+
+The `.espdl` model files are embedded by `board_build.embed_files`; they are separate from the ESP-DL source submodule. Do not remove or rename `examples/AstraPort/models/hand_detect.espdl` or `examples/AstraPort/models/hand_gesture_cls.espdl`.
+
 ## 中文说明
 
 ### 1. 项目特色
@@ -427,3 +517,93 @@ examples/AstraPort/
 ├── AstraGlassServices.cpp  WiFi、相机、音频、LoRa 和设置服务
 └── platformio_src.py       Factory_Astra 编译源文件配置
 ~~~
+
+默认的 PlatformIO 源码目录为 `examples/AstraPort`，默认环境为 `T-Glass`。如需构建另一个 AstraPort 环境，请明确选择 `Factory_Astra`：
+
+```powershell
+pio run -e T-Glass
+pio run -e Factory_Astra
+```
+
+## Factory_Astra 与 ESP-DL
+
+`examples/AstraPort` 使用 Espressif ESP-DL 进行手部检测和手势分类。ESP-DL 是源码依赖，不只是一个库头文件：预编译脚本会运行 `examples/AstraPort/platformio_src.py`，调用 `scripts/ensure_espdl.py`，并执行 ESP-DL 的 `compile_finalize.py`，在 `.pio/build/<environment>/espdl_generated` 下生成所需文件。
+
+仓库将构建所使用的固定版本 ESP-DL 注册为子模块：
+
+```text
+third_party/esp-dl/
+└── esp-dl/
+    ├── cmake/compile_finalize.py
+    ├── CMakeLists.txt
+    └── fbs_loader/lib/esp32s3/libfbs_model.a
+```
+
+### 克隆并初始化 ESP-DL
+
+正常使用 Git 检出仓库时，请使用递归克隆：
+
+```bash
+git clone --recurse-submodules https://github.com/Xinyuan-LilyGO/T-Glass-V3.git
+cd T-Glass-V3
+```
+
+如果仓库已经克隆，请从仓库根目录初始化或修复子模块：
+
+```bash
+git submodule sync --recursive
+git submodule update --init --recursive
+```
+
+在 PowerShell 中，使用以下命令检查 AstraPort 构建所需的两个文件：
+
+```powershell
+Test-Path .\third_party\esp-dl\esp-dl\cmake\compile_finalize.py
+Test-Path .\third_party\esp-dl\esp-dl\fbs_loader\lib\esp32s3\libfbs_model.a
+```
+
+两个命令都必须输出 `True`。
+
+### ZIP 下载和 `compile_finalize.py` 错误
+
+GitHub ZIP 下载不包含有效的子模块内容。在这种情况下，AstraPort 预编译脚本会自动从 GitHub 下载固定版本的 ESP-DL 压缩包，并准备 `third_party/esp-dl`。因此，首次构建需要能够访问 GitHub 的网络连接。如果需要替换不完整的目录，脚本会保留其备份；不要在仓库旁边复制随机的 `esp-dl-master` 目录，也不要重命名嵌套的 `esp-dl` 目录。
+
+以下错误表示 ESP-DL 目录缺失或不完整：
+
+```text
+can't open file ...third_party/esp-dl/esp-dl/cmake/compile_finalize.py
+```
+
+从仓库根目录修复后再次构建：
+
+```bash
+git submodule update --init --recursive --force
+```
+
+如果检出内容仍然包含不完整的子模块，只重新初始化该子模块后重试：
+
+```bash
+git submodule deinit -f -- third_party/esp-dl
+git submodule update --init --recursive
+```
+
+PlatformIO 预编译脚本必须使用本仓库自己的 `examples/AstraPort/platformio_src.py` 运行，并且必须将 ESP-DL 解析为本仓库内的 `third_party/esp-dl`。不要恢复旧的外部同级目录路径或依赖特定机器的 ESP-DL 路径。
+
+### Python 版本
+
+PlatformIO 和 ESP-DL 准备步骤使用 Python **3.10 到 3.14**。Python 3.9 不受支持。GitHub Actions 工作流使用 Python 3.11。如果 CI 或 PlatformIO 报告 `Current Python version: 3.9.x`，请安装受支持的 Python 版本，并在再次运行 `pio run` 前重新创建或更新 PlatformIO 环境。
+
+### ESP-DL 运行时内存失败
+
+如果编译成功，但进入 3D 手势识别页面后打印类似以下错误并重启：
+
+```text
+Input cap=0x400 can not allocate with MALLOC_CAP_SIMD
+Failed to alloc ... PSRAM
+largest available PSRAM block size ...
+MemoryManagerGreedy: root_alloc failed
+```
+
+这属于连续 PSRAM 或运行时内存问题，不是缺少 `compile_finalize.py`。相机网页推流和 ESP-DL 手势推理不能同时占用相机及模型内存。进入 Gesture3D 前先退出图传推流；当手势识别占用相机时，Factory_Astra 会停止网页服务器并延后 WiFi 重连。分配失败后，在再次尝试前重启设备，以释放碎片化的 PSRAM。请保持 ESP32-S3 开发板配置、QSPI PSRAM 设置、固定版本的 PlatformIO 平台，以及 `examples/AstraPort/models` 下的两个 `.espdl` 模型文件不变。
+
+`.espdl` 模型文件通过 `board_build.embed_files` 嵌入固件，与 ESP-DL 源码子模块相互独立。不要删除或重命名 `examples/AstraPort/models/hand_detect.espdl` 或 `examples/AstraPort/models/hand_gesture_cls.espdl`。

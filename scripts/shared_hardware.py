@@ -42,14 +42,18 @@ env.Append(
         + framework_include_dirs
         + project_dependency_include_dirs
 )
-env.BuildSources(
-    os.path.join(env.subst("$BUILD_DIR"), "shared_hardware"),
-    shared_hardware_src,
-    [
+if not env.get("TGLASS_SHARED_HARDWARE_BUILT"):
+    shared_sources = [
         "+<LilyGo_GlassV3.cpp>",
         "+<LilyGo_Button.cpp>",
         "+<PCA9570.cpp>",
         "+<initSequence.cpp>",
-        "+<LV_Helper.cpp>",
-    ],
-)
+    ]
+    if "lvgl/lvgl" in str(env.GetProjectOption("lib_deps", "")).lower():
+        shared_sources.append("+<LV_Helper.cpp>")
+    env.BuildSources(
+        os.path.join(env.subst("$BUILD_DIR"), "shared_hardware"),
+        shared_hardware_src,
+        shared_sources,
+    )
+    env["TGLASS_SHARED_HARDWARE_BUILT"] = True
