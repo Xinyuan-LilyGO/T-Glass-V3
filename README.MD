@@ -162,13 +162,23 @@ examples/
 
 ### 🧑🏼‍🔧 I2C Devices Address
 
-| Device        | 7-Bit Address |             | Note           |
-| ------------- | ------------- | ----------- | -------------- |
-| [ES8311][2]   | 0x18          | Audio Codec | Shared I2C Bus |
-| [ES7210][3]   | 0x40          | Audio ADC   | Shared I2C Bus |
-| [BQ25896][4]  | 0x6B          | Charger     | Shared I2C Bus |
-| [BQ27220][5]  | 0x55          | Gauge       | Shared I2C Bus |
-| [SGM38121][6] | 0x28          | Camera Pmic | Shared I2C Bus |
+| Device        | 7-Bit Address |               | Note           |
+| ------------- | ------------- | ------------- | -------------- |
+| [ES8311][2]   | 0x18          | Audio Codec   | Shared I2C Bus |
+| [ES7210][3]   | 0x40          | Audio ADC     | Shared I2C Bus |
+| [BQ25896][4]  | 0x6B          | Charger       | Shared I2C Bus |
+| [BQ27220][5]  | 0x55          | Gauge         | Shared I2C Bus |
+| [SGM38121][6] | 0x28          | Camera Pmic   | Shared I2C Bus |
+| [PCA9570][7]  | 0x24          | GPIO Expander | Shared I2C Bus |
+
+### GPIO Expander
+
+| GPIO | Function              | Note                       |
+| ---- | --------------------- | -------------------------- |
+| P0   | Audio Power Amplifier | HIGH: Enabled Low: Disable |
+| P1   | LoRa Power supply     | HIGH: Enabled Low: Disable |
+| P2   | No Connect            | x                          |
+| P3   | No Connect            | x                          |
 
 ### ⚡ Electrical Parameters
 
@@ -178,7 +188,7 @@ examples/
 | Charge Current      | 200 mA        |
 | Battery Voltage     | 3.7V          |
 | Battery Capacity    | 500 mA        |
-| Battery Connector   | [MX 1.2mm][7] |
+| Battery Connector   | [MX 1.2mm][8] |
 | Charge Temperature  | 0°C ~ 60°C    |
 
 > [!IMPORTANT]
@@ -207,8 +217,8 @@ examples/
    2. Press and hold the **BOOT button** , While still pressing the **BOOT button**, press **RST button**
    3. Release the **RST button**
    4. Release the **BOOT button**
-   6. Upload sketch
-   7. Press the **RST** button to exit download mode
+   5. Upload sketch
+   6. Press the **RST** button to exit download mode
 
 2. If the above is invalid, burn the [binary file](./firmware/README.MD) to check whether the hardware is normal
 3. If you use external power supply instead of USB-C, please turn off the **USB_CDC_ON_BOOT** option. This is because the board will wait for USB access when it starts.
@@ -247,11 +257,11 @@ examples/
 - [ESP8266SAM 1.1.0](https://github.com/earlephilhower/ESP8266SAM)
 - [arduino-audio-driver 0.2.0](https://github.com/pschatzmann/arduino-audio-driver)
 
-
 [1]: https://www.lilygo.cc/products/t-glass
 [2]: http://www.everest-semi.com/pdf/ES8311%20PB.pdf
 [3]: http://www.everest-semi.com/pdf/ES7210%20PB.pdf
 [4]: https://www.ti.com/product/BQ25896
 [5]: https://www.ti.com/product/BQ27220
 [6]: https://www.sg-micro.com/rect/assets/6aadf126-e29c-4b05-9225-2b7969ae2dd1/SGM38121.pdf
-[7]: https://www.molex.com/content/dam/molex/molex-dot-com/products/automated/en-us/salesdrawingpdf/781/78171/781710003_sd.pdf?inline\
+[7]: https://www.nxp.com/products/PCA9570
+[8]: https://www.molex.com/content/dam/molex/molex-dot-com/products/automated/en-us/salesdrawingpdf/781/78171/781710003_sd.pdf?inline\
